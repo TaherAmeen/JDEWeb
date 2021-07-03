@@ -9,7 +9,7 @@ import javax.ws.rs.*;
  *
  * @author Taher
  */
-@Path("board")
+@Path("/board")
 public class Board {
     @GET
     @Produces("text/html")
