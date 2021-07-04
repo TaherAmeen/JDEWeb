@@ -1,0 +1,136 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package jupai9.examples;
+
+import org.apache.log4j.Logger;
+import org.apache.log4j.Level;
+
+
+
+import org.apache.spark.sql.DataFrameReader;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.functions;
+import org.apache.spark.sql.functions.*;
+
+
+
+import java.io.IOException;
+
+import java.util.ArrayList;
+
+import java.util.List;
+import org.knowm.xchart.CategoryChart;
+import org.knowm.xchart.CategoryChartBuilder;
+import org.knowm.xchart.SwingWrapper;
+import org.knowm.xchart.style.Styler.LegendPosition;
+
+/**
+ *
+ * @author Mahmoud Eidarous
+ */
+public class test {
+    public static void main(String[] args) throws IOException {
+        
+        Logger.getLogger("org").setLevel(Level.OFF);
+        Logger.getLogger("akka").setLevel(Level.OFF);
+        
+        final SparkSession sparkSession = SparkSession.builder ().appName ("Spark CSV Analysis Demo").master ("local[2]")
+                .getOrCreate ();
+        
+        final DataFrameReader dataFrameReader = sparkSession.read ();
+        dataFrameReader.option ("header", "true");
+        Dataset<Row> wazzaf = dataFrameReader.csv ("C:\\Java\\JUPAI9Examples\\src\\main\\resources\\Wuzzuf_Jobs.csv");
+        wazzaf.show();
+        wazzaf.printSchema();
+        long datacount = wazzaf.count();
+        System.out.println("Number of Rows of original Data : " +datacount);
+        
+        Dataset<Row> wazzafDistinct = wazzaf.distinct();
+        long datacountDis = wazzafDistinct.count();
+        System.out.println("Number of Rows of Distinct Data : " +datacountDis);
+        
+        
+        Dataset<Row> wazzafNoNull=  wazzafDistinct.filter("YearsExp NOT LIKE 'null%'");
+        long datacountnoNull = wazzafNoNull.count(); 
+        System.out.println("Number of Rows of Not Null Data : " +datacountnoNull);
+        
+        Dataset<Row> companyCount = wazzafNoNull.groupBy("Company").agg(functions.count("Company").as("Count")).sort(functions.desc("Count"));
+        
+        Dataset<Row> jopsCount = wazzafNoNull.groupBy("Title").agg(functions.count("Title").as("Count")).where("Count>10").sort(functions.desc("Count"));
+        
+        Dataset<Row> areaCount = wazzafNoNull.groupBy("Location").agg(functions.count("Location").as("Count")).sort(functions.desc("Count"));
+        
+        List titles = new ArrayList();
+       
+        for(Row r:jopsCount.collectAsList()){
+            titles.add(r);
+        }
+        List<String> namesTitle = new ArrayList<>();
+        for(int i = 0; i< 6; i++){
+            namesTitle.add((String)((Row)titles.get(i)).get(0)); 
+        }
+        List<Long> countTitles = new ArrayList<>();
+        for(int i = 0; i< 6; i++){
+            countTitles.add( (long)((Row)titles.get(i)).get(1)); 
+        }
+        
+       
+        
+        
+        
+         // Create Chart
+        CategoryChart chartTitle = new CategoryChartBuilder().width(800).height(600).title("Most Popular Jop Titels").xAxisTitle("Jop Titels").yAxisTitle("Count").build();
+
+        // Customize Chart
+        chartTitle.getStyler().setLegendPosition(LegendPosition.InsideNW);
+        chartTitle.getStyler().setHasAnnotations(true);
+        chartTitle.getStyler().setStacked(true);
+
+        // Series
+        chartTitle.addSeries(" ",namesTitle,countTitles);
+        
+        //show
+        new SwingWrapper(chartTitle).displayChart();
+        
+        
+        List results = new ArrayList();
+       
+        for(Row r:areaCount.collectAsList()){
+            results.add(r);
+        }
+        List<String> names = new ArrayList<>();
+        for(int i = 0; i< 6; i++){
+            names.add((String)((Row)results.get(i)).get(0)); 
+        }
+        List<Long> countCities = new ArrayList<>();
+        for(int i = 0; i< 6; i++){
+            countCities.add( (long)((Row)results.get(i)).get(1)); 
+        }
+        
+       
+        
+        
+        
+         // Create Chart
+        CategoryChart chart = new CategoryChartBuilder().width(800).height(600).title("Most Popular Cities").xAxisTitle("Cities").yAxisTitle("Count").build();
+
+        // Customize Chart
+        chart.getStyler().setLegendPosition(LegendPosition.InsideNW);
+        chart.getStyler().setHasAnnotations(true);
+        chart.getStyler().setStacked(true);
+
+        // Series
+        chart.addSeries(" ",names,countCities);
+        
+        //show
+        new SwingWrapper(chart).displayChart();
+
+    }
+  
+}
+    
